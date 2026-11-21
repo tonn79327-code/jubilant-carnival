@@ -1,593 +1,250 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tool Vượt Web GitHub</title>
-  <style>
-    :root {
-      --bg: #080d16;
-      --panel: #101827;
-      --panel-2: #172236;
-      --border: rgba(148, 163, 184, 0.18);
-      --text: #f8fafc;
-      --muted: #94a3b8;
-      --green: #16a34a;
-      --blue: #0284c7;
-      --cyan: #38bdf8;
-      --amber: #f59e0b;
-      --red: #dc2626;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cloud Cam - Kho 50 Ảnh</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background: #0f0f13; color: #fff; display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 14px; }
+        h1 { font-size: 1.15rem; margin-bottom: 12px; background: linear-gradient(45deg, #ff6b6b, #feca57); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; }
+        
+        /* Khung Camera */
+        .cam-box { position: relative; width: 100%; max-width: 420px; aspect-ratio: 3/4; background: #1e1e26; border-radius: 22px; overflow: hidden; box-shadow: 0 12px 32px rgba(0,0,0,0.65); border: 1px solid rgba(255,255,255,0.08); }
+        video { width: 100%; height: 100%; object-fit: cover; transition: filter 0.25s; }
+        .mirror { transform: scaleX(-1); }
+        
+        /* Các chế độ làm đẹp */
+        .filter-normal { filter: none; }
+        .filter-glow { filter: brightness(1.09) contrast(1.04) saturate(1.16) blur(0.25px); }
+        .filter-peach { filter: brightness(1.08) contrast(1.05) sepia(0.15) saturate(1.25); }
+        .filter-vintage { filter: sepia(0.28) contrast(1.12) brightness(1.04) saturate(1.18); }
+        .filter-cool { filter: brightness(1.07) contrast(1.08) hue-rotate(-10deg) saturate(1.12); }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+        /* Nút điều khiển trên Camera */
+        .controls { position: absolute; bottom: 18px; left: 0; right: 0; display: flex; justify-content: space-around; align-items: center; padding: 0 18px; }
+        .btn-sub { background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.22); color: #fff; padding: 9px 14px; border-radius: 50px; font-size: 0.82rem; backdrop-filter: blur(8px); cursor: pointer; min-width: 86px; text-align: center; }
+        .btn-sub:active { background: rgba(255,255,255,0.2); }
+        .btn-snap { width: 70px; height: 70px; border-radius: 50%; background: #fff; border: 5px solid rgba(255,255,255,0.38); cursor: pointer; transition: transform 0.1s; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
+        .btn-snap:active { transform: scale(0.88); }
 
-    body {
-      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
-      background: radial-gradient(circle at top, #13233f 0%, var(--bg) 62%);
-      color: var(--text);
-      min-height: 100vh;
-      padding: 28px 16px 130px;
-    }
+        /* Thanh chọn Filter */
+        .filters { display: flex; gap: 8px; margin: 14px 0; overflow-x: auto; max-width: 420px; width: 100%; padding-bottom: 4px; scrollbar-width: none; }
+        .filters::-webkit-scrollbar { display: none; }
+        .f-chip { background: #1e1e26; border: 1px solid #333; color: #ccc; padding: 7px 14px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+        .f-chip.active { background: linear-gradient(45deg, #ff6b6b, #ff8e53); color: #fff; border-color: transparent; font-weight: bold; }
 
-    .wrap {
-      max-width: 780px;
-      margin: 0 auto;
-    }
+        /* Thư viện ảnh chung */
+        .gallery-header { width: 100%; max-width: 420px; display: flex; justify-content: space-between; align-items: center; margin: 14px 0 10px; font-size: 0.9rem; color: #bbb; }
+        .gallery-right { display: flex; align-items: center; gap: 10px; }
+        .btn-refresh { background: #262630; border: 1px solid #3a3a48; color: #fff; padding: 4px 10px; border-radius: 12px; font-size: 0.78rem; cursor: pointer; }
+        .gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: 100%; max-width: 420px; padding-bottom: 30px; }
+        .photo-item { position: relative; aspect-ratio: 3/4; border-radius: 10px; overflow: hidden; background: #1e1e26; border: 1px solid rgba(255,255,255,0.06); }
+        .photo-item img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; display: block; }
+        .photo-time { position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,0.65); font-size: 0.62rem; padding: 2px 5px; border-radius: 4px; color: #eee; }
+        .empty-msg { grid-column: 1 / -1; text-align: center; color: #666; padding: 30px 0; font-size: 0.9rem; }
 
-    .hero {
-      background: linear-gradient(150deg, rgba(23, 34, 54, 0.92), rgba(16, 24, 39, 0.96));
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 26px 20px;
-      text-align: center;
-      margin-bottom: 18px;
-      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.45);
-    }
-
-    .hero h1 {
-      font-size: clamp(20px, 3.8vw, 28px);
-      font-weight: 800;
-      margin-bottom: 10px;
-      color: #e0f2fe;
-    }
-
-    .hero p {
-      font-size: 13px;
-      color: var(--muted);
-      line-height: 1.55;
-      max-width: 560px;
-      margin: 0 auto 18px;
-    }
-
-    .btn-start-main {
-      background: linear-gradient(135deg, #22c55e, var(--green));
-      color: #fff;
-      border: none;
-      border-radius: 11px;
-      padding: 12px 26px;
-      font-size: 14px;
-      font-weight: 800;
-      cursor: pointer;
-      box-shadow: 0 10px 24px rgba(22, 163, 74, 0.35);
-    }
-
-    .card {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 16px;
-      margin-bottom: 18px;
-    }
-
-    .card-title {
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--cyan);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      margin-bottom: 12px;
-    }
-
-    .link-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
-      margin-bottom: 12px;
-    }
-
-    @media (max-width: 560px) {
-      .link-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-    }
-
-    .link-btn {
-      background: var(--panel-2);
-      color: var(--text);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 10px 8px;
-      font-size: 13px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .link-btn.active {
-      background: linear-gradient(135deg, #0ea5e9, var(--blue));
-      border-color: #7dd3fc;
-      color: #fff;
-    }
-
-    .url-row {
-      display: flex;
-      gap: 8px;
-    }
-
-    .url-row input {
-      flex: 1;
-      background: #0b111e;
-      color: #fff;
-      border: 1px solid var(--border);
-      border-radius: 9px;
-      padding: 9px 12px;
-      font-size: 13px;
-      outline: none;
-    }
-
-    .url-row button {
-      background: var(--blue);
-      color: #fff;
-      border: none;
-      border-radius: 9px;
-      padding: 9px 14px;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .sim-box {
-      background: var(--panel-2);
-      border: 1px dashed rgba(148, 163, 184, 0.28);
-      border-radius: 12px;
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .sim-cmd {
-      background: rgba(14, 165, 233, 0.14);
-      border: 1px solid rgba(56, 189, 248, 0.3);
-      border-radius: 9px;
-      padding: 10px 12px;
-      font-size: 13px;
-      line-height: 1.45;
-    }
-
-    .sim-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .sim-btn {
-      background: #1e293b;
-      color: #f1f5f9;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 8px 12px;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .sim-btn.target-hit {
-      border-color: var(--cyan);
-      color: #7dd3fc;
-    }
-
-    /* Menu nhỏ gọn bật lên khi ấn Khởi chạy */
-    .floating-menu {
-      position: fixed;
-      right: 14px;
-      bottom: 14px;
-      z-index: 9999;
-      width: 286px;
-      background: #0c121e;
-      border: 1px solid rgba(56, 189, 248, 0.4);
-      border-radius: 15px;
-      padding: 11px;
-      box-shadow: 0 16px 38px rgba(0, 0, 0, 0.65);
-      display: none;
-    }
-
-    .floating-menu.open {
-      display: block;
-    }
-
-    .fm-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-    }
-
-    .fm-title {
-      font-size: 12px;
-      font-weight: 800;
-      color: var(--cyan);
-    }
-
-    .fm-hide {
-      background: rgba(255, 255, 255, 0.08);
-      color: #cbd5e1;
-      border: none;
-      border-radius: 6px;
-      padding: 3px 8px;
-      font-size: 11px;
-      cursor: pointer;
-    }
-
-    .fm-start-btn {
-      width: 100%;
-      background: linear-gradient(135deg, #22c55e, var(--green));
-      color: #fff;
-      border: none;
-      border-radius: 9px;
-      padding: 8px 10px;
-      font-size: 13px;
-      font-weight: 800;
-      cursor: pointer;
-      margin-bottom: 8px;
-    }
-
-    .fm-start-btn.running {
-      background: linear-gradient(135deg, #ef4444, var(--red));
-    }
-
-    .fm-links {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 6px;
-      margin-bottom: 8px;
-    }
-
-    .fm-link-btn {
-      background: #151f32;
-      color: #e2e8f0;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 6px;
-      font-size: 11px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .fm-link-btn.active {
-      background: var(--blue);
-      border-color: #7dd3fc;
-      color: #fff;
-    }
-
-    .fm-key {
-      background: #131c2e;
-      border: 1px solid rgba(56, 189, 248, 0.25);
-      border-radius: 8px;
-      padding: 7px 8px;
-      font-size: 11px;
-      margin-bottom: 8px;
-      word-break: break-all;
-    }
-
-    .fm-log {
-      background: #070b13;
-      border: 1px solid rgba(148, 163, 184, 0.14);
-      border-radius: 8px;
-      padding: 7px 8px;
-      max-height: 115px;
-      overflow-y: auto;
-      font-size: 11px;
-      color: #cbd5e1;
-      line-height: 1.4;
-      white-space: pre-line;
-    }
-  </style>
+        /* Xem ảnh phóng to */
+        #modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.94); z-index: 99; flex-direction: column; justify-content: center; align-items: center; padding: 20px; }
+        #modal img { max-width: 100%; max-height: 75vh; border-radius: 14px; box-shadow: 0 8px 30px rgba(0,0,0,0.8); }
+        .modal-btns { display: flex; gap: 12px; margin-top: 18px; }
+        .btn-dl { padding: 10px 22px; border-radius: 22px; border: none; background: #2ed573; color: #000; font-weight: bold; text-decoration: none; font-size: 0.9rem; }
+        .btn-close { padding: 10px 22px; border-radius: 22px; border: none; background: #ff4757; color: #fff; font-weight: bold; font-size: 0.9rem; cursor: pointer; }
+        .flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; transition: opacity 0.15s; }
+    </style>
 </head>
 <body>
-  <div class="wrap">
-    <section class="hero">
-      <h1>TOOL VƯỢT WEB GITHUB</h1>
-      <p>
-        Bấm <strong>Khởi chạy</strong> để mở menu nhỏ gọn, chọn <strong>link4m</strong>, <strong>gtrafic</strong>, <strong>ontoplink</strong> hoặc <strong>layma</strong>, rồi bấm <strong>Bắt đầu vượt</strong>. Lưu ý: trình duyệt không tự giải Captcha và không tự thao tác xuyên sang tab web bên ngoài.
-      </p>
-      <button id="mainLaunchBtn" class="btn-start-main" type="button">Khởi chạy</button>
-    </section>
 
-    <section class="card">
-      <div class="card-title">Danh sách link / mục vượt</div>
-      <div class="link-grid">
-        <button class="link-btn active" data-item="link4m" type="button">link4m</button>
-        <button class="link-btn" data-item="gtrafic" type="button">gtrafic</button>
-        <button class="link-btn" data-item="ontoplink" type="button">ontoplink</button>
-        <button class="link-btn" data-item="layma" type="button">layma</button>
-      </div>
+    <h1>✨ Cloud Cam (Kho chung 50 ảnh)</h1>
 
-      <div class="url-row">
-        <input id="customUrlInput" type="text" placeholder="Dán link mục tiêu (tùy chọn)..." />
-        <button id="openCustomUrlBtn" type="button">Mở link</button>
-      </div>
-    </section>
-
-    <section class="card">
-      <div class="card-title">Khu vực thao tác & chỉ đạo trên trang</div>
-      <div class="sim-box">
-        <div id="cmdDisplay" class="sim-cmd">
-          Chỉ đạo: Kéo xuống và ấn đúng nút mục tiêu (link4m / gtrafic / ontoplink / layma).
+    <div class="cam-box">
+        <video id="video" class="mirror filter-glow" autoplay playsinline></video>
+        <div class="flash" id="flash"></div>
+        <div class="controls">
+            <button class="btn-sub" onclick="switchCam()">🔄 Đổi Cam</button>
+            <button class="btn-snap" onclick="takePhoto()"></button>
+            <div class="btn-sub" id="statusTxt">Sẵn sàng</div>
         </div>
-
-        <div class="sim-actions">
-          <button class="sim-btn target-hit" data-target="link4m" type="button">Nút vượt link4m</button>
-          <button class="sim-btn" data-target="gtrafic" type="button">Nút vượt gtrafic</button>
-          <button class="sim-btn" data-target="ontoplink" type="button">Nút vượt ontoplink</button>
-          <button class="sim-btn" data-target="layma" type="button">Nút vượt layma</button>
-        </div>
-
-        <div class="sim-actions">
-          <button class="sim-btn" id="cmdUpBtn" type="button">Lệnh: Kéo lên</button>
-          <button class="sim-btn" id="cmdDownBtn" type="button">Lệnh: Kéo xuống</button>
-          <button class="sim-btn" id="cmdTouchBtn" type="button">Lệnh: Ấn vào màn hình</button>
-          <button class="sim-btn" id="cmdFolderReloadBtn" type="button">Lệnh: Ấn thư mục bất kỳ (vượt lần 2)</button>
-          <button class="sim-btn" id="cmdCaptchaBtn" type="button">Lệnh: Captcha (layma)</button>
-          <button class="sim-btn" id="cmdKeyBtn" type="button">Ra Key: TON-KEY-8899</button>
-        </div>
-      </div>
-    </section>
-  </div>
-
-  <!-- Menu nhỏ gọn -->
-  <aside id="floatingMenu" class="floating-menu">
-    <div class="fm-head">
-      <span class="fm-title" id="fmTitle">MENU • LINK4M</span>
-      <button id="fmHideBtn" class="fm-hide" type="button">Ẩn</button>
     </div>
 
-    <button id="fmStartBtn" class="fm-start-btn" type="button">Bắt đầu vượt</button>
-
-    <div class="fm-links">
-      <button class="fm-link-btn active" data-item="link4m" type="button">link4m</button>
-      <button class="fm-link-btn" data-item="gtrafic" type="button">gtrafic</button>
-      <button class="fm-link-btn" data-item="ontoplink" type="button">ontoplink</button>
-      <button class="fm-link-btn" data-item="layma" type="button">layma</button>
+    <div class="filters">
+        <div class="f-chip" onclick="setFilter('filter-normal', this)">Gốc</div>
+        <div class="f-chip active" onclick="setFilter('filter-glow', this)">✨ Mịn & Sáng</div>
+        <div class="f-chip" onclick="setFilter('filter-peach', this)">🍑 Hồng hào</div>
+        <div class="f-chip" onclick="setFilter('filter-vintage', this)">🎞️ Retro</div>
+        <div class="f-chip" onclick="setFilter('filter-cool', this)">❄️ Hàn Quốc</div>
     </div>
 
-    <div id="fmKeyBox" class="fm-key">Key: (Chưa có key)</div>
-    <div id="fmLog" class="fm-log">[Sẵn sàng] Bấm Khởi chạy để mở menu.</div>
-  </aside>
+    <div class="gallery-header">
+        <span>Ảnh mọi người đã chụp</span>
+        <div class="gallery-right">
+            <span id="countTxt">0 / 50</span>
+            <button class="btn-refresh" onclick="loadGallery()">↻ Tải lại</button>
+        </div>
+    </div>
+    <div class="gallery" id="gallery">
+        <div class="empty-msg">Đang tải kho ảnh...</div>
+    </div>
 
-  <script>
-    (function () {
-      const KEY_STORE = "github_bypass_tool_v1";
-      const DEFAULTS = {
-        menuOpen: false,
-        running: false,
-        selected: "link4m",
-        pass: 1,
-        reloadedPass2: false,
-        customUrl: "",
-        key: "",
-        logs: ["[Sẵn sàng] Chọn mục và bấm Bắt đầu vượt."]
-      };
+    <div id="modal" onclick="closeModal(event)">
+        <img id="modalImg" src="">
+        <div class="modal-btns">
+            <a id="downloadBtn" class="btn-dl" href="#" download="cloud-cam.jpg">⬇️ Tải về máy</a>
+            <button class="btn-close" onclick="document.getElementById('modal').style.display='none'">Đóng</button>
+        </div>
+    </div>
 
-      let state = Object.assign({}, DEFAULTS, JSON.parse(localStorage.getItem(KEY_STORE) || "{}"));
+    <canvas id="canvas" style="display:none;"></canvas>
 
-      const mainLaunchBtn = document.getElementById("mainLaunchBtn");
-      const floatingMenu = document.getElementById("floatingMenu");
-      const fmHideBtn = document.getElementById("fmHideBtn");
-      const fmStartBtn = document.getElementById("fmStartBtn");
-      const fmTitle = document.getElementById("fmTitle");
-      const fmKeyBox = document.getElementById("fmKeyBox");
-      const fmLog = document.getElementById("fmLog");
-      const cmdDisplay = document.getElementById("cmdDisplay");
-      const customUrlInput = document.getElementById("customUrlInput");
-      const openCustomUrlBtn = document.getElementById("openCustomUrlBtn");
+    <script>
+        const DB_URL = "https://chup-6184c-default-rtdb.firebaseio.com";
+        const MAX_PHOTOS = 50;
 
-      const allItemBtns = Array.from(document.querySelectorAll("[data-item]"));
-      const allTargetBtns = Array.from(document.querySelectorAll(".sim-btn[data-target]"));
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const gallery = document.getElementById('gallery');
+        const statusTxt = document.getElementById('statusTxt');
+        const countTxt = document.getElementById('countTxt');
+        let currentStream = null;
+        let useFrontCam = true;
+        let currentFilter = 'filter-glow';
+        let photoKeys = [];
+        let isTaking = false;
 
-      function save() {
-        localStorage.setItem(KEY_STORE, JSON.stringify(state));
-        render();
-      }
-
-      function log(msg) {
-        const t = new Date().toLocaleTimeString("vi-VN", { hour12: false });
-        state.logs.unshift(`[${t}] ${msg}`);
-        state.logs = state.logs.slice(0, 15);
-        save();
-      }
-
-      function copyKey(val) {
-        if (!val) return;
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(val).catch(() => {});
-        }
-      }
-
-      function render() {
-        floatingMenu.classList.toggle("open", !!state.menuOpen);
-        fmTitle.textContent = `MENU • ${state.selected.toUpperCase()} (Lượt ${state.pass})`;
-
-        fmStartBtn.textContent = state.running ? "Đang vượt (Bấm để dừng)" : "Bắt đầu vượt";
-        fmStartBtn.classList.toggle("running", !!state.running);
-
-        allItemBtns.forEach((btn) => {
-          btn.classList.toggle("active", btn.dataset.item === state.selected);
-        });
-
-        allTargetBtns.forEach((btn) => {
-          btn.classList.toggle("target-hit", btn.dataset.target === state.selected);
-        });
-
-        customUrlInput.value = state.customUrl || "";
-        fmKeyBox.textContent = state.key ? `Key (đã sao chép): ${state.key}` : "Key: (Chưa có key)";
-        fmLog.textContent = state.logs.join("\n");
-      }
-
-      function chooseTarget(item) {
-        state.selected = item;
-        state.pass = 1;
-        state.reloadedPass2 = false;
-        log(`Đã chọn mục: ${item}`);
-        save();
-      }
-
-      function touchScreenCenter() {
-        const x = Math.floor(window.innerWidth / 2);
-        const y = Math.floor(window.innerHeight / 2);
-        const el = document.elementFromPoint(x, y) || document.body;
-        ["pointerdown", "mousedown", "pointerup", "mouseup", "click"].forEach((ev) => {
-          el.dispatchEvent(new MouseEvent(ev, { bubbles: true, cancelable: true, view: window, clientX: x, clientY: y }));
-        });
-        log("Đã ấn vào màn hình (giả lập trên trang).");
-      }
-
-      mainLaunchBtn.addEventListener("click", () => {
-        state.menuOpen = true;
-        log("Đã mở menu nhỏ gọn.");
-        save();
-      });
-
-      fmHideBtn.addEventListener("click", () => {
-        state.menuOpen = false;
-        save();
-      });
-
-      fmStartBtn.addEventListener("click", () => {
-        state.running = !state.running;
-        if (state.running) {
-          state.reloadedPass2 = false;
-          log(`Bắt đầu vượt [${state.selected}] - Lượt ${state.pass}.`);
-        } else {
-          log("Đã dừng vượt.");
-        }
-        save();
-      });
-
-      allItemBtns.forEach((btn) => {
-        btn.addEventListener("click", () => chooseTarget(btn.dataset.item));
-      });
-
-      openCustomUrlBtn.addEventListener("click", () => {
-        const val = customUrlInput.value.trim();
-        state.customUrl = val;
-        save();
-        if (!val) {
-          log("Chưa nhập link.");
-          return;
-        }
-        const safeUrl = /^https?:\/\//i.test(val) ? val : "https://" + val;
-        window.open(safeUrl, "_blank", "noopener,noreferrer");
-        log(`Đã mở link: ${safeUrl}`);
-      });
-
-      allTargetBtns.forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const t = btn.dataset.target;
-          cmdDisplay.textContent = `Đã ấn nút vượt [${t}] — đang tiếp tục vượt theo chỉ đạo.`;
-          log(`Đã ấn nút vượt [${t}].`);
-        });
-      });
-
-      document.getElementById("cmdUpBtn").addEventListener("click", () => {
-        cmdDisplay.textContent = "Chỉ đạo: Kéo lên đầu trang để tiếp tục.";
-      });
-      document.getElementById("cmdDownBtn").addEventListener("click", () => {
-        cmdDisplay.textContent = "Chỉ đạo: Kéo xuống cuối trang để tiếp tục.";
-      });
-      document.getElementById("cmdTouchBtn").addEventListener("click", () => {
-        cmdDisplay.textContent = "Chỉ đạo: Ấn vào màn hình để tiếp tục.";
-      });
-      document.getElementById("cmdFolderReloadBtn").addEventListener("click", () => {
-        cmdDisplay.textContent = "Chỉ đạo: Cần ấn thư mục bất kỳ để tiếp tục vượt lần 2.";
-      });
-      document.getElementById("cmdCaptchaBtn").addEventListener("click", () => {
-        cmdDisplay.textContent = "Chỉ đạo: Vui lòng giải captcha trên layma để tiếp tục.";
-      });
-      document.getElementById("cmdKeyBtn").addEventListener("click", () => {
-        cmdDisplay.textContent = "Hoàn tất! Key của bạn: TON-KEY-8899";
-      });
-
-      // Nếu vừa reload cho lượt 2 thì tiếp tục kéo xuống & ấn đúng nút
-      if (state.reloadedPass2 && state.running) {
-        state.reloadedPass2 = false;
-        state.pass = 2;
-        cmdDisplay.textContent = `Đang vượt lần 2 cho [${state.selected}] — kéo xuống & ấn nút.`;
-        log("Đã tải lại trang -> Tiếp tục vượt lần 2.");
-        save();
-      }
-
-      setInterval(() => {
-        if (!state.running) return;
-
-        const txt = (cmdDisplay.textContent || "").toLowerCase();
-
-        // Kiểm tra key
-        const keyMatch = (cmdDisplay.textContent || "").match(/key\s*(?:của bạn)?\s*:\s*([A-Za-z0-9_-]{4,40})/i);
-        if (keyMatch && keyMatch[1] && state.key !== keyMatch[1]) {
-          state.key = keyMatch[1];
-          state.running = false;
-          copyKey(state.key);
-          log(`Đã nhận Key & tự động sao chép: ${state.key}`);
-          save();
-          return;
+        async function startCam() {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+            }
+            const constraints = {
+                video: {
+                    facingMode: useFrontCam ? "user" : "environment",
+                    width: { ideal: 1280 },
+                    height: { ideal: 1706 }
+                },
+                audio: false
+            };
+            try {
+                currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = currentStream;
+                video.classList.toggle('mirror', useFrontCam);
+            } catch (err) {
+                alert("Không mở được camera! Hãy mở bằng link GitHub Pages (HTTPS) và cho phép quyền Camera.");
+            }
         }
 
-        // Gặp captcha -> báo dừng để giải tay
-        if (txt.includes("captcha")) {
-          state.running = false;
-          log("Gặp Captcha (layma): script không tự giải được, vui lòng giải tay rồi bấm Bắt đầu vượt.");
-          save();
-          return;
+        function switchCam() {
+            useFrontCam = !useFrontCam;
+            startCam();
         }
 
-        // Gặp chỉ đạo ấn thư mục bất kỳ để vượt lần 2 -> tải lại trang
-        if (txt.includes("ấn thư mục bất kỳ") && !state.reloadedPass2) {
-          state.reloadedPass2 = true;
-          state.logs.unshift(`[${new Date().toLocaleTimeString("vi-VN", { hour12: false })}] Gặp "ấn thư mục bất kỳ" -> Đang tải lại trang vượt lần 2...`);
-          state.logs = state.logs.slice(0, 15);
-          localStorage.setItem(KEY_STORE, JSON.stringify(state));
-          setTimeout(() => location.reload(), 600);
-          return;
+        function setFilter(filterClass, el) {
+            video.classList.remove(currentFilter);
+            currentFilter = filterClass;
+            video.classList.add(currentFilter);
+            document.querySelectorAll('.f-chip').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
         }
 
-        // Làm theo chỉ đạo kéo lên / kéo xuống / ấn vào màn hình
-        if (txt.includes("kéo lên")) {
-          window.scrollTo({ top: 0, behavior: "smooth" });
-          log("Đã kéo lên theo chỉ đạo.");
-        } else if (txt.includes("kéo xuống")) {
-          window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" });
-          log("Đã kéo xuống theo chỉ đạo.");
-        } else if (txt.includes("ấn vào màn hình")) {
-          touchScreenCenter();
-        } else {
-          window.scrollBy({ top: 220, behavior: "smooth" });
+        async function takePhoto() {
+            if (isTaking || !video.videoWidth) return;
+            isTaking = true;
+
+            const flash = document.getElementById('flash');
+            flash.style.opacity = 0.85;
+            setTimeout(() => flash.style.opacity = 0, 150);
+
+            statusTxt.innerText = "Đang lưu...";
+
+            const scale = 600 / video.videoWidth;
+            canvas.width = 600;
+            canvas.height = video.videoHeight * scale;
+            const ctx = canvas.getContext('2d');
+
+            const computedFilter = getComputedStyle(video).filter;
+            ctx.filter = computedFilter !== 'none' ? computedFilter : 'none';
+
+            if (useFrontCam) {
+                ctx.translate(canvas.width, 0);
+                ctx.scale(-1, 1);
+            }
+
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const base64Img = canvas.toDataURL('image/jpeg', 0.78);
+
+            const now = new Date();
+            const timeStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')} ${now.getDate()}/${now.getMonth()+1}`;
+
+            try {
+                const res = await fetch(`${DB_URL}/photos.json`, {
+                    method: 'POST',
+                    body: JSON.stringify({ img: base64Img, time: timeStr, ts: Date.now() })
+                });
+
+                if (!res.ok) throw new Error("Firebase chặn quyền ghi");
+
+                // Vượt quá 50 ảnh -> xóa ảnh cũ nhất
+                if (photoKeys.length >= MAX_PHOTOS) {
+                    const deleteCount = photoKeys.length - MAX_PHOTOS + 1;
+                    for (let i = 0; i < deleteCount; i++) {
+                        await fetch(`${DB_URL}/photos/${photoKeys[i]}.json`, { method: 'DELETE' });
+                    }
+                }
+
+                statusTxt.innerText = "Đã lưu!";
+                setTimeout(() => statusTxt.innerText = "Sẵn sàng", 1500);
+                await loadGallery();
+            } catch (e) {
+                statusTxt.innerText = "Lỗi lưu!";
+                alert("Lỗi lưu ảnh! Vào Firebase -> Realtime Database -> tab Rules sửa .read và .write thành true nhé.");
+            } finally {
+                isTaking = false;
+            }
         }
 
-        // Tìm đúng nút theo mục đang chọn (link4m / gtrafic / ontoplink / layma) và ấn
-        const btn = document.querySelector(`.sim-btn[data-target="${state.selected}"]`);
-        if (btn && !btn.dataset.clickedOnce) {
-          btn.dataset.clickedOnce = "1";
-          btn.scrollIntoView({ behavior: "smooth", block: "center" });
-          setTimeout(() => btn.click(), 300);
-        }
-      }, 1500);
+        async function loadGallery() {
+            try {
+                const res = await fetch(`${DB_URL}/photos.json`);
+                const data = await res.json();
+                gallery.innerHTML = "";
+                photoKeys = [];
 
-      render();
-    })();
-  </script>
+                if (!data || data.error) {
+                    countTxt.innerText = `0 / ${MAX_PHOTOS}`;
+                    gallery.innerHTML = `<div class="empty-msg">Chưa có ảnh nào. Bấm nút tròn để chụp mở hàng!</div>`;
+                    return;
+                }
+
+                const entries = Object.entries(data).sort((a, b) => a[1].ts - b[1].ts);
+                photoKeys = entries.map(e => e[0]);
+                countTxt.innerText = `${entries.length} / ${MAX_PHOTOS}`;
+
+                entries.reverse().forEach(([key, item]) => {
+                    const div = document.createElement('div');
+                    div.className = 'photo-item';
+                    div.innerHTML = `<img src="${item.img}" loading="lazy"><span class="photo-time">${item.time}</span>`;
+                    div.onclick = () => {
+                        document.getElementById('modalImg').src = item.img;
+                        document.getElementById('downloadBtn').href = item.img;
+                        document.getElementById('downloadBtn').download = `cam-${item.ts}.jpg`;
+                        document.getElementById('modal').style.display = 'flex';
+                    };
+                    gallery.appendChild(div);
+                });
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function closeModal(e) {
+            if (e.target.id === 'modal') {
+                document.getElementById('modal').style.display = 'none';
+            }
+        }
+
+        startCam();
+        loadGallery();
+        setInterval(loadGallery, 10000);
+    </script>
 </body>
-</html>
+  </html>
+      
